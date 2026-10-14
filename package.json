@@ -3,17 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "build": "worker-build --release",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "generate-types": "wrangler types",
     "start": "wrangler dev",
-    "test": "vitest",
-    "typecheck": "npm run generate-types && tsc"
+    "test": "cargo test"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.0.0",
     "typescript": "^7.0.2",
-    "vitest": "~4.1.0",
     "wrangler": "^4.150.0"
   }
 }

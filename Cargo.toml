@@ -1,0 +1,17 @@
+[package]
+name = "js-worker"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+worker = "0.8.7"
+uuid = { version = "1", features = ["v4", "js"] }
+
+[profile.release]
+opt-level = "s"
+lto = false
+strip = false
+codegen-units = 16
