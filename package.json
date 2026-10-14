@@ -5,11 +5,14 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
+    "generate-types": "wrangler types",
     "start": "wrangler dev",
-    "test": "vitest"
+    "test": "vitest",
+    "typecheck": "npm run generate-types && tsc"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.0.0",
+    "typescript": "^7.0.2",
     "vitest": "~4.1.0",
     "wrangler": "^4.150.0"
   }

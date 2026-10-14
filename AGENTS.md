@@ -1,62 +1,42 @@
-# Cloudflare Workers
+# js-worker
 
-STOP. Your knowledge of Cloudflare Workers APIs and limits may be outdated. Always retrieve current documentation before any Workers, KV, R2, D1, Durable Objects, Queues, Vectorize, AI, or Agents SDK task.
-
-## Docs
-
-- https://developers.cloudflare.com/workers/
-- MCP: `https://docs.mcp.cloudflare.com/mcp`
-
-For all limits and quotas, retrieve from the product's `/platform/limits/` page. eg. `/workers/platform/limits`
+Cloudflare Worker, TypeScript base, Wrangler 4.
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| `npx wrangler dev` | Local development |
-| `npx wrangler deploy` | Deploy to Cloudflare |
-| `npx wrangler types` | Generate TypeScript types |
+- `npm run dev` / `npm start` — local dev (`wrangler dev`, default http://localhost:8787/).
+- `npm run deploy` — deploy to Cloudflare.
+- `npm test` — Vitest via `@cloudflare/vitest-plugin`.
+- Single test: `npx vitest run test/index.spec.ts -t "<test name substring>"`.
+- Type check: `npm run typecheck` (runs `wrangler types && tsc --noEmit`).
+- Generate types: `npm run generate-types` after changing `wrangler.jsonc` or compatibility settings.
 
-Run `wrangler types` after changing bindings in wrangler.jsonc.
+## Layout
 
-## Local Explorer (Debugging & Inspection)
+- Entrypoint: `src/index.ts`, default export typed as `ExportedHandler<Env>`.
+- Generated types: `worker-configuration.d.ts` from `npm run generate-types` (commit it; rerun after `wrangler.jsonc` changes). tsconfig pulls it in.
+- Worker routes: `/message` → `"Olá, Worker!  Agora integrado ao github."`; `/random` → UUID; anything else → `404` from the Worker.
+- Static assets: `public/` is served by Cloudflare Assets (`assets.directory` in `wrangler.jsonc`); `/` is `public/index.html`, which calls `/message` and `/random`. Asset routing takes precedence, so the Worker's default `404` only applies to non-asset paths.
+- No lint or format scripts. Style: tabs, 140 cols, single quotes, semicolons (`.prettierrc`, `.editorconfig`). Match when editing.
 
-When running `npx wrangler dev`, a Local Explorer API is available for inspecting and debugging local Workers, bindings, and storage state. The API base URL is printed in the terminal when the dev server starts.
+## Testing
 
-Key endpoints (relative to the dev server URL):
+- Config: `vitest.config.mjs` uses `cloudflareTest({ wrangler: { configPath: "./wrangler.jsonc" } })`.
+- Unit style: `import worker from "../src"` then `worker.fetch(request, env, ctx)` with `createExecutionContext`/`waitOnExecutionContext`.
+- Integration style: `SELF.fetch(request)`.
+- `env` has no bindings currently (all bindings commented in `wrangler.jsonc`).
+- Known mismatch: `test/index.spec.ts` inline snapshots for `/message` still expect `"Hello, World!"`, but `src/index.ts` returns the Portuguese string above. Decide which side is authoritative before changing either; do not just regenerate snapshots.
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /cdn-cgi/local/explorer/api/local/workers` | List local Workers and their bindings |
-| `GET /cdn-cgi/local/explorer/api/storage/kv/namespaces` | List KV namespaces |
-| `GET /cdn-cgi/local/explorer/api/d1/database` | List D1 databases |
-| `GET /cdn-cgi/local/explorer/api/r2/buckets` | List R2 buckets |
-| `GET /cdn-cgi/local/explorer/api/workers/durable_objects/namespaces` | List Durable Object namespaces |
-| `GET /cdn-cgi/local/explorer/api/workflows` | List Workflows |
-| `POST /cdn-cgi/local/explorer/api/local/observability/query` | Run a read-only SQL query (SELECT/WITH only) over captured request traces and console logs. Tables: `spans`, `logs` (read attributes via `json(attributes)`). Example: `curl -X POST <base>/cdn-cgi/local/explorer/api/local/observability/query -H 'Content-Type: application/json' -d '{"sql":"SELECT service, name, outcome, duration_ms FROM spans WHERE parent_id IS NULL LIMIT 20"}'` |
-| `POST /cdn-cgi/local/explorer/api/local/observability/clear` | Clear all captured traces and logs |
+## Config
 
-If the routes above don't cover what you need, fetch the full OpenAPI schema (large - use only as a last resort): `GET /cdn-cgi/local/explorer/api`
+- Compatibility date `2026-10-06`, flag `global_fetch_strictly_public`.
+- Observability enabled; `upload_source_maps: true`.
+- No bindings configured. `.wrangler/` (gitignored) holds local dev state and can go stale; delete it if bindings/state look wrong.
 
-Use the Local Explorer to debug issues by inspecting storage state (KV keys, D1 rows, R2 objects, DO storage), viewing Worker bindings, and querying request traces and logs captured during the dev session.
+## Debugging
 
-## Node.js Compatibility
+- `npx wrangler dev` prints a Local Explorer base URL. Endpoints under `/cdn-cgi/local/explorer/...` inspect workers/bindings/storage and query captured traces via SQL. Useful for binding or storage issues.
 
-https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+## Cloudflare
 
-## Errors
-
-- **Error 1102** (CPU/Memory exceeded): Retrieve limits from `/workers/platform/limits/`
-- **All errors**: https://developers.cloudflare.com/workers/observability/errors/
-
-## Product Docs
-
-Retrieve API references and limits from:
-`/kv/` · `/r2/` · `/d1/` · `/durable-objects/` · `/queues/` · `/vectorize/` · `/workers-ai/` · `/agents/`
-
-## Best Practices (conditional)
-
-If the application uses Durable Objects or Workflows, refer to the relevant best practices:
-
-- Durable Objects: https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/
-- Workflows: https://developers.cloudflare.com/workflows/build/rules-of-workflows/
+- APIs and limits change; fetch current docs (developers.cloudflare.com or the docs MCP) before non-trivial platform work instead of relying on memory.
