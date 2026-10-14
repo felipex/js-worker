@@ -13,7 +13,7 @@ export default {
 		const url = new URL(request.url);
 		switch (url.pathname) {
 			case '/message':
-				return new Response('Olá, Worker!');
+				return new Response('Olá, Worker!  Agora integrado ao github.');
 			case '/random':
 				return new Response(crypto.randomUUID());
 			default:
